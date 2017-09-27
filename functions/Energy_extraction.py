@@ -126,3 +126,100 @@ Outputs are the filtered time-domain signals for each band.
     gamma = filtfilt(a,b,frame1,axis=1)
 
     return delta, theta, alpha, beta, gamma, low_alpha, high_alpha
+
+
+
+
+#######################################
+
+### Calculate power spectual density for each frequency band (as a whole) and their relative ratio value.
+### This might be the most useful and important feature for the Sleep stage classification
+###
+####
+
+def energy_psd(phase, col, delta, theta, alpha, beta, gamma, low_alpha, high_alpha, dfFeature):
+
+'''
+Input:
+	phase: we can divide the original signal into several phase with respect with time. 
+		   This variable is the label of each phase
+	col: The name of each channel of bological signal.
+	dfFeature: The returned df.DataFrame.
+'''
+    print "------------------------phase ", phase, "begin:"
+    delta_f,delta_psd = welch(delta,fs=512,scaling='density',axis=1)
+#     if 'Origin' == phase:
+    if '_phase_0' == phase:
+        dfFeature = pd.DataFrame((delta_psd*delta_psd).sum(axis=1))
+        dfFeature.columns = [col+'_delta_Energy'+phase]
+    else:
+        dfFeature[col+'_delta_Energy'+phase] = (delta_psd*delta_psd).sum(axis=1)
+    theta_f,theta_psd = welch(theta,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_theta_Energy'+phase] = (theta_psd*theta_psd).sum(axis=1)
+    alpha_f,alpha_psd = welch(alpha,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_alpha_Energy'+phase] = (alpha_psd*alpha_psd).sum(axis=1)
+    beta_f,beta_psd = welch(beta,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_beta_Energy'+phase] = (beta_psd*beta_psd).sum(axis=1)
+    gamma_f,gamma_psd = welch(gamma,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_gamma_Energy'+phase] = (gamma_psd*gamma_psd).sum(axis=1)
+    
+    low_alpha_f,low_alpha_psd = welch(low_alpha,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_low_alpha_Energy'+phase] = (low_alpha_psd*low_alpha_psd).sum(axis=1)
+    high_alpha_f,high_alpha_psd = welch(high_alpha,fs=512,scaling='density',axis=1)
+    dfFeature[col+'_high_alpha_Energy'+phase] = (high_alpha_psd*high_alpha_psd).sum(axis=1)
+    
+    dfFeature[col+'_Energy'+phase] = dfFeature[col+'_delta_Energy'+phase]+dfFeature[col+'_theta_Energy'+phase]+dfFeature[col+'_alpha_Energy'+phase]+\
+                                dfFeature[col+'_beta_Energy'+phase]+dfFeature[col+'_gamma_Energy'+phase]
+        
+    dfFeature[col+'Energyratio1'+phase] = (dfFeature[col+'_alpha_Energy'+phase])/(dfFeature[col+'_delta_Energy'+phase]+dfFeature[col+'_theta_Energy'+phase])
+    dfFeature[col+'Energyratio2'+phase] = (dfFeature[col+'_delta_Energy'+phase])/(dfFeature[col+'_theta_Energy'+phase]+dfFeature[col+'_alpha_Energy'+phase])
+    dfFeature[col+'Energyratio3'+phase] = (dfFeature[col+'_theta_Energy'+phase])/(dfFeature[col+'_delta_Energy'+phase]+dfFeature[col+'_alpha_Energy'+phase])
+
+    dfFeature[col+'Energyrelative1'+phase] = (dfFeature[col+'_alpha_Energy'+phase])/dfFeature[col+'_Energy'+phase]
+    dfFeature[col+'Energyrelative2'+phase] = (dfFeature[col+'_delta_Energy'+phase])/dfFeature[col+'_Energy'+phase]   
+    dfFeature[col+'Energyrelative3'+phase] = (dfFeature[col+'_theta_Energy'+phase])/dfFeature[col+'_Energy'+phase]
+    dfFeature[col+'Energyrelative4'+phase] = (dfFeature[col+'_beta_Energy'+phase])/dfFeature[col+'_Energy'+phase]
+    dfFeature[col+'Energyrelative5'+phase] = (dfFeature[col+'_gamma_Energy'+phase])/dfFeature[col+'_Energy'+phase]
+        
+    return dfFeature
+
+
+
+##########################################
+
+### Calculate the psd with small moving windows (6 seconds with 50% overlaping)
+### Extract statistic value from these psd series.
+####
+
+def small_window_psd(phase, col, delta, theta, alpha, beta, gamma, dfFeature):
+    
+    band = [delta, theta, alpha, beta, gamma]
+    band_name = ['delta', 'theta', 'alpha', 'beta', 'gamma']
+    
+    for i in range(5):
+        signal = np.array(band[i])
+        signal_name = band_name[i]
+        print "moving small windows on ", signal_name
+        
+        psd_arr = np.zeros((signal.shape[0],1 + (30-6)/3))
+        
+        for j in range(1 + (30-6)/3):
+            
+            segment = signal[::, j*3*512:(j+2)*3*512]
+            f,psd = welch(segment,fs=512, scaling='density', nperseg=256, noverlap=128, axis=1)
+            psd = pd.DataFrame(psd)
+            psd_arr[:,j] = psd.sum(axis=1)
+            
+        psd_arr = pd.DataFrame(psd_arr)
+        dfFeature[col+signal_name+'_psd_min'+phase] = psd_arr.min(axis=1)
+        dfFeature[col+signal_name+'_psd_max'+phase] = psd_arr.max(axis=1)
+        dfFeature[col+signal_name+'_psd_mean'+phase] = psd_arr.mean(axis=1)
+        dfFeature[col+signal_name+'_psd_median'+phase] = psd_arr.median(axis=1)
+        dfFeature[col+signal_name+'_psd_std'+phase] = psd_arr.std(axis=1)
+        dfFeature[col+signal_name+'_psd_var'+phase] = psd_arr.var(axis=1)
+        dfFeature[col+signal_name+'_psd_diff_max'+phase] = psd_arr.diff(axis=1).max(axis=1)
+        dfFeature[col+signal_name+'_psd_diff_min'+phase] = psd_arr.diff(axis=1).min(axis=1)
+        dfFeature[col+signal_name+'_psd_diff_mean'+phase] = psd_arr.diff(axis=1).mean(axis=1)
+        dfFeature[col+signal_name+'_psd_diff_std'+phase] = psd_arr.diff(axis=1).std(axis=1)
+        
+    return dfFeature
