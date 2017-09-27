@@ -1,5 +1,5 @@
 ############################################################################
-# This file is the demo code used to extract features for EEG analysis
+# This file is the demo code used to extract energy features for EEG analysis
 # The mainly method is to use the existing package.
 # However, the packages are sometimes obscure to use.
 # So I wrote down this file as a reference for further work on EEG analysis.
