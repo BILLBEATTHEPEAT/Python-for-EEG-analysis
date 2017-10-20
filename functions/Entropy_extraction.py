@@ -183,3 +183,63 @@ def permutation_entropy(x, n, tau):
     """Compute Permutation Entropy of a given time series x, specified by
     permutation order n and embedding lag tau.
     """
+    
+    
+############################################
+
+### From the package pyEntropy: https://github.com/nikdon/pyEntropy
+### Install: pip install pyentrp
+
+def small_window_en(phase, col, delta, theta, alpha, beta, gamma, dfFeature):
+    
+    '''
+    Calculating Multi-scale entropy for the EEG signals.
+    Multiscale Entropy (sample entropy) and Multiscale-permutation Entropy.
+    Paper: Nakamura T, Adjei T, Alqurashi Y, et al. Complexity science for sleep stage classification from EE.
+    '''
+    
+    band = [delta, theta, alpha, beta, gamma]
+    band_name = ['delta', 'theta', 'alpha', 'beta', 'gamma']
+    
+    for i in range(5):
+        signal = pd.DataFrame(band[i])
+        signal_name = band_name[i]
+        print "calculating en with moving small window on ", signal_name
+        
+        multiscale_arr = np.zeros((signal.shape[0],30))
+        multipermu_arr = np.zeros((signal.shape[0],30))
+#         compomulti_arr = np.zeros((signal.shape[0],30))
+
+        for index, row in signal.iterrows():
+            print index
+            multiscale_arr[index] = multiscale_entropy(row, 30, tolerance=None)
+            multipermu_arr[index] = multiscale_permutation_entropy(row, 5, 1, 30)
+#             compomulti_arr[j] = composite_multiscale_entropy(signal[j], 30, 30)
+        
+        multiscale_arr = pd.DataFrame(multiscale_arr)
+        dfFeature[col+signal_name+'_multiscale_min'+phase] = multiscale_arr.min(axis=1)
+        dfFeature[col+signal_name+'_multiscale_max'+phase] = multiscale_arr.max(axis=1)
+        dfFeature[col+signal_name+'_multiscale_mean'+phase] = multiscale_arr.mean(axis=1)
+        dfFeature[col+signal_name+'_multiscale_median'+phase] = multiscale_arr.median(axis=1)
+        dfFeature[col+signal_name+'_multiscale_std'+phase] = multiscale_arr.std(axis=1)
+        dfFeature[col+signal_name+'_multiscale_var'+phase] = multiscale_arr.var(axis=1)
+        dfFeature[col+signal_name+'_multiscale_diff_max'+phase] = multiscale_arr.diff(axis=1).max(axis=1)
+        dfFeature[col+signal_name+'_multiscale_diff_min'+phase] = multiscale_arr.diff(axis=1).min(axis=1)
+        dfFeature[col+signal_name+'_multiscale_diff_mean'+phase] = multiscale_arr.diff(axis=1).mean(axis=1)
+        dfFeature[col+signal_name+'_multiscale_diff_std'+phase] = multiscale_arr.diff(axis=1).std(axis=1)
+        
+        multipermu_arr = pd.DataFrame(multipermu_arr)
+        dfFeature[col+signal_name+'_multipermu_min'+phase] = multipermu_arr.min(axis=1)
+        dfFeature[col+signal_name+'_multipermu_max'+phase] = multipermu_arr.max(axis=1)
+        dfFeature[col+signal_name+'_multipermu_mean'+phase] = multipermu_arr.mean(axis=1)
+        dfFeature[col+signal_name+'_multipermu_median'+phase] = multipermu_arr.median(axis=1)
+        dfFeature[col+signal_name+'_multipermu_std'+phase] = multipermu_arr.std(axis=1)
+        dfFeature[col+signal_name+'_multipermu_var'+phase] = multipermu_arr.var(axis=1)
+        dfFeature[col+signal_name+'_multipermu_diff_max'+phase] = multipermu_arr.diff(axis=1).max(axis=1)
+        dfFeature[col+signal_name+'_multipermu_diff_min'+phase] = multipermu_arr.diff(axis=1).min(axis=1)
+        dfFeature[col+signal_name+'_multipermu_diff_mean'+phase] = multipermu_arr.diff(axis=1).mean(axis=1)
+        dfFeature[col+signal_name+'_multipermu_diff_std'+phase] = multipermu_arr.diff(axis=1).std(axis=1)
+        
+
+        
+    return dfFeature
