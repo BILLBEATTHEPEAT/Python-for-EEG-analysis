@@ -189,6 +189,40 @@ def permutation_entropy(x, n, tau):
 
 ### From the package pyEntropy: https://github.com/nikdon/pyEntropy
 ### Install: pip install pyentrp
+### More easy to use than the pyeeg package
+
+def multiscale_entropy(time_series, sample_length, tolerance):
+    n = len(time_series)
+    mse = np.zeros((1, sample_length))
+
+    for i in range(sample_length):
+        b = int(np.fix(n / (i + 1)))
+        temp_ts = [0] * int(b)
+        for j in range(b):
+            num = np.sum(time_series[j * (i + 1): (j + 1) * (i + 1)])
+            den = i + 1
+            temp_ts[j] = float(num) / float(den)
+        se = pyentropy.sample_entropy(temp_ts, 1, tolerance)
+        mse[0, i] = se
+    
+    return mse[0]
+
+def multiscale_permutation_entropy(time_series, m, delay, scale):
+    mspe = []
+    for i in range(scale):
+        coarse_time_series = pyentropy.util_granulate_time_series(time_series, i + 1)
+        pe = pyentropy.permutation_entropy(coarse_time_series, m, delay)
+        mspe.append(pe)
+    return mspe
+
+def composite_multiscale_entropy(time_series, sample_length, scale, tolerance=None):
+    cmse = np.zeros((1, scale))
+
+    for i in range(scale):
+        for j in range(i):
+            tmp = pyentropy.util_granulate_time_series(time_series[j:], i + 1)
+            cmse[0,i] = pyentropy.sample_entropy(tmp, sample_length, tolerance).sum() / (i + 1)
+    return cmse
 
 def small_window_en(phase, col, delta, theta, alpha, beta, gamma, dfFeature):
     
