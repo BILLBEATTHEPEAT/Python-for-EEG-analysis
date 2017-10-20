@@ -10,3 +10,4 @@ In Python 2.7
 - PyWavelets (pywt)
 - Scipy
 - PyEEG
+- pyEntropy
